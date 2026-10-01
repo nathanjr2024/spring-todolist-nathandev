@@ -1,16 +1,20 @@
-FROM ubuntu:latest AS build
+FROM eclipse-temurin:17-jdk AS build
 
-RUN apt-get update
-RUN apt-get install openjdk-21-jdk -y
+WORKDIR /app
 
-Copy . .
+COPY pom.xml .
+RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
+RUN mvn dependency:go-offline -B
 
-RUN apt-get install maven -y
-RUN mvn clean instal
+COPY src ./src
+RUN mvn clean package -DskipTests -B
 
-FROM openjdk:21-jdk-slin
+FROM eclipse-temurin:17-jre
+
+WORKDIR /app
+
+COPY --from=build /app/target/todolist-1.0.0.jar app.jar
 
 EXPOSE 8080
 
-COPY --from=build /target/todolist-1.0.0.jar app.jar
 ENTRYPOINT ["java", "-jar", "app.jar"]
